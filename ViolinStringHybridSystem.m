@@ -3,20 +3,21 @@ classdef ViolinStringHybridSystem < HybridSystem
 
     % Define parameters.
     properties
-        linear_density = 0.1;
-        tension = 100;
-        string_length = 10;
+        linear_density = 0.1; % kg/m
+        tension = 1000; % Newtons
+        string_length = 1; % meters
 
         vel_damping_coef = 1;
         
-        bow_normal_force = 1000
-        bow_speed = 200;
+        bow_normal_force = 100; % Newtons
+        bow_speed = 15; % m/s
         bow_grid_ndx = 6;  % Index of the bow.
         bow_static_friction_coeff = 1;
-        bow_kinetic_friction_coeff = 0.8;
+        bow_kinetic_friction_coeff = 110.8;
     end
 
-    % Define constant properties that cannot be modified (i.e., "immutable").
+    % Define constant properties that cannot be modified after object
+    % creation (i.e., "immutable").
     properties(SetAccess = immutable) 
         n_grid;
 
@@ -25,7 +26,7 @@ classdef ViolinStringHybridSystem < HybridSystem
         string_pos_indices;
         string_vel_indices;
 
-        % The state q indicates whether the bow is in a stick mode (q=0) where
+        % The state component q indicates whether the bow is in a stick mode (q=0) where
         % the interaction the bow and string is governed by static friction or
         % slip mode (q=1) where the interaction is governed by kinetic friction.
         q_index;
@@ -87,13 +88,16 @@ classdef ViolinStringHybridSystem < HybridSystem
                 xdot(this.string_vel_indices(this.bow_grid_ndx)) = 0;
             elseif q == this.SLIP_MODE
                 % Apply the force of the bow
-                bow_ndx_speed = string_vel(this.bow_grid_ndx);
-                vel_diff = this.bow_speed - bow_ndx_speed;
+                string_vel_at_bow = string_vel(this.bow_grid_ndx);
+                vel_diff = this.bow_speed - string_vel_at_bow;
 
+                % The bow applies a force in the direction of the bows travel
+                % (relative to the string, indicated by "sign(vel_diff)") that
+                % is equal to (normal force)*(coefficient of kinetic friction).
                 bow_force = sign(vel_diff) * this.bow_normal_force * this.bow_kinetic_friction_coeff;
-                string_portion_mass = 1;
+
                 xdot(this.string_vel_indices(this.bow_grid_ndx)) ...
-                    = xdot(this.string_vel_indices(this.bow_grid_ndx)) + bow_force / string_portion_mass;
+                    = xdot(this.string_vel_indices(this.bow_grid_ndx)) + bow_force / this.linear_density;
 
                 % xdot(this.string_vel_indices(this.bow_grid_ndx)) = this.bow_speed;
             end
@@ -118,6 +122,8 @@ classdef ViolinStringHybridSystem < HybridSystem
         end
 
         function inD = jumpSetIndicator(this, x)
+            inD = 0;
+            return
             q = x(this.q_index);
             left_index_pos = x(this.string_pos_indices(this.bow_grid_ndx-1));
             bow_index_pos = x(this.string_pos_indices(this.bow_grid_ndx));

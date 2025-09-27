@@ -4,22 +4,24 @@ violin = ViolinStringHybridSystem(n_grid);
 
 grid = linspace(0, violin.string_length, n_grid+2)';
 grid_interior = grid(2:end-1);
-h0 = sin(pi*grid_interior / violin.string_length);
+h0 = 0*sin(pi*grid_interior / violin.string_length);
 v0 = 0*h0;
-q0 = ViolinStringHybridSystem.STICK_MODE;
+q0 = ViolinStringHybridSystem.SLIP_MODE;
 x0 = [h0; v0; q0];
 
 tspan = [0, 10];
-jspan = [0, 1000];
+jspan = [0, 10];
+config = HybridSolverConfig('odeSolver', 'ode45');
 sol = violin.solve(x0, tspan, jspan)
-t_grid = linspace(0, sol.t(end), 400);
+t_grid = linspace(0, sol.t(end), 100);
 sol = sol.interpolateToHybridArc(t_grid);
 
 figure(1);
 for i = 1:size(sol.x, 1)
     clf
     ymax_in_sol = max(max(abs(sol.x(:, violin.string_pos_indices))));
-    ylim(1.5*ymax_in_sol*[-1, 1])
+    % ylim(1.5*ymax_in_sol*[-1, 1])
+    ylim(1.5*[-1, 1])
     hold on
     plot(grid, [0; sol.x(i, violin.string_pos_indices)'; 0])
     q = sol.x(i, violin.q_index);
